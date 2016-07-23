@@ -28,7 +28,7 @@ class simPlo(QMainWindow, Ui_MainWindow):
 
         # matplotlib
 
-        self.schrift = 12
+        self.schrift = 14
         self.comment = ""
 
         self.ax = []
