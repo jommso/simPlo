@@ -16,7 +16,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 
 # plt.style.use("ggplot")
-
+# simPlo unstable
 
 class simPlo(QMainWindow, Ui_MainWindow):
     def __init__(self):
@@ -110,13 +110,15 @@ class simPlo(QMainWindow, Ui_MainWindow):
 
         self.plotten_starten = QAction(QIcon("icons/plot.png"), "Plot", self)
         self.plotten_starten.setShortcut("Alt+w")
-        self.plotten_starten.triggered.connect(self.plotten)
+        self.plotten_starten.triggered.connect(self.start_plot)
         # self.treeWidget.addAction(self.plotten_starten)
 
         self.delete_item = QAction("Delete", self)
         self.delete_item.setShortcut("Ctrl+x")
         self.delete_item.triggered.connect(self.delete_selected_data)
         self.treeWidget.addAction(self.delete_item)
+
+
 
         # Menubar
         menuleiste = self.menuBar()
@@ -155,6 +157,15 @@ class simPlo(QMainWindow, Ui_MainWindow):
         math_op = QAction(QIcon("icons/math_op.png"), "Math Operations", self)
         math_op.triggered.connect(self.math_operations)
 
+
+        self.save1 = QAction(QIcon("icons/save1.png"), "Save Plot 1", self)
+        #self.delete_item.setShortcut("Ctrl+x")
+        self.save1.triggered.connect(self.save_plot_1)
+
+        self.save2 = QAction(QIcon("icons/save2.png"), "Save Plot 2", self)
+        # self.delete_item.setShortcut("Ctrl+x")
+        self.save2.triggered.connect(self.save_plot_2)
+
         file.addAction(open_simplo)
         file.addAction(save_simplo)
         file.addAction(import_data)
@@ -175,9 +186,11 @@ class simPlo(QMainWindow, Ui_MainWindow):
         file.addAction(copy_d)
         file.addAction(integral_num)
         file.addAction(math_op)
+        file.addAction(self.save1)
+        file.addAction(self.save2)
 
         werkzeugleiste = self.addToolBar("Werkzeugleiste")
-        werkzeugleiste.setIconSize(QtCore.QSize(30, 30))
+        werkzeugleiste.setIconSize(QtCore.QSize(40, 40))
         werkzeugleiste.addAction(export_data)
         werkzeugleiste.addAction(import_data)
         werkzeugleiste.addAction(self.xwert)
@@ -189,6 +202,8 @@ class simPlo(QMainWindow, Ui_MainWindow):
         werkzeugleiste.addAction(self.plot_window_none)
         werkzeugleiste.addSeparator()
         werkzeugleiste.addAction(self.plotten_starten)
+        werkzeugleiste.addAction(self.save1)
+        werkzeugleiste.addAction(self.save2)
         werkzeugleiste.addSeparator()
         werkzeugleiste.addAction(copy_d)
         werkzeugleiste.addAction(integral_num)
@@ -509,7 +524,6 @@ class simPlo(QMainWindow, Ui_MainWindow):
             np.savetxt(f1[0], data_T, fmt='%.18e', delimiter=';', newline='\n', header=fullheader, footer='',
                        comments='')
 
-
     # tiny helpfull things
     def create_index_list_of_selected_items(self):
 
@@ -693,7 +707,7 @@ class simPlo(QMainWindow, Ui_MainWindow):
                 j = j + 1
         self.treeWidget.expandAll()
         self.treeWidget.setAlternatingRowColors(True)
-        for x in range(6):
+        for x in range(1,6):
             self.treeWidget.resizeColumnToContents(x)
 
 
@@ -1077,7 +1091,10 @@ class simPlo(QMainWindow, Ui_MainWindow):
         else:
             return x, y
 
-    def plotten(self):
+    def start_plot(self):
+        self.plot(0,"")
+
+    def plot(self,mode,plot_filename):
 
         # limits
         axis_w = self.define_limits()
@@ -1114,7 +1131,6 @@ class simPlo(QMainWindow, Ui_MainWindow):
                                                         fontsize=self.schrift)
                             self.ax[fenster].set_title(window_title[fenster])
 
-
                 else:  # y-plots
                     y = eintrag[2]
                     self.ax[fenster].plot(y, linestyle=eintrag[8],
@@ -1128,13 +1144,32 @@ class simPlo(QMainWindow, Ui_MainWindow):
                 self.ax[fenster].axis(axis_w[fenster])
                 self.ax[fenster].grid(color="black")
                 self.logscale_definition(axis_w)
-
+        #self.ax[0].savefig('test.eps', format='eps', dpi=900)
         self.ax[0].legend(loc='best', fancybox=True, shadow=False, fontsize=self.schrift)
         self.ax[1].legend(loc='best', fancybox=True, shadow=False, fontsize=self.schrift)
         # self.ax[0].set_xlim(0,5)
         # self.ax[1].set_ylim(0,100)
+
         self.canvas.draw()
         self.canvas2.draw()
+
+        if mode == 1:
+            self.figure.savefig(str(plot_filename))
+        if mode == 2:
+            self.figure2.savefig(str(plot_filename))
+
+    def save_plot_1(self): self.save_plot(1)
+
+    def save_plot_2(self): self.save_plot(2)
+
+    def save_plot(self,mode):
+        f1 = QFileDialog.getSaveFileName(self, "Save Plot of Window "+str(mode), "",
+                                         "PNG File (*.png);;SVG File (*.svg);;All Files (*)")
+        if f1[0] == "": return
+        self.plot(mode,f1[0])
+        return
+
+
 
     # exit
     def sigint_handler(self, *args):
@@ -1144,6 +1179,7 @@ class simPlo(QMainWindow, Ui_MainWindow):
                                 QMessageBox.Yes | QMessageBox.No,
                                 QMessageBox.No) == QMessageBox.Yes:
             QApplication.quit()
+
 
 
 
