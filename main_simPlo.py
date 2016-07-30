@@ -10,13 +10,15 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 
+import matplotlib.cbook as cbook
+
 import matplotlib
+import matplotlib.image as image
 matplotlib.use("Qt5Agg")
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
+from  matplotlib.pyplot import figure, show, cm
 
-# plt.style.use("ggplot")
-# simPlo unstable
 
 class simPlo(QMainWindow, Ui_MainWindow):
     def __init__(self):
@@ -32,17 +34,25 @@ class simPlo(QMainWindow, Ui_MainWindow):
         self.comment = ""
 
         self.ax = []
-        self.figure = plt.figure(facecolor='white', edgecolor='black')
-        self.canvas = FigureCanvas(self.figure)
+        self.figure1 = plt.figure(facecolor='white')  # , edgecolor='black')
+        self.canvas = FigureCanvas(self.figure1)
         self.verticalLayout_mpl1.addWidget(self.canvas)
-        self.ax.append(self.figure.add_subplot(111, frameon=True))  # axisbg='w',
+        self.ax.append(self.figure1.add_subplot(111, axisbg="#dbdbdb"))  # , frameon=True))  # axisbg='w',
         plt.gcf().subplots_adjust(bottom=0.18)
 
-        self.figure2 = plt.figure(facecolor='white', edgecolor='black')
+        self.figure2 = plt.figure(facecolor='white')  # , edgecolor='black')
         self.canvas2 = FigureCanvas(self.figure2)
         self.verticalLayout_mpl1.addWidget(self.canvas2)
-        self.ax.append(self.figure2.add_subplot(111, axisbg='w', frameon=True))
+        self.ax.append(self.figure2.add_subplot(111, axisbg="#dbdbdb"))  # , axisbg='w', frameon=True))
         plt.gcf().subplots_adjust(bottom=0.18)
+        plt.style.use("fivethirtyeight")
+
+
+        for fenster in range(2):
+            # self.ax[fenster].grid(color=(0.30,0.30,0.30))
+            self.ax[fenster].tick_params(color=(0.30, 0.30, 0.30), labelcolor=(0.30, 0.30, 0.30))
+            for spine in self.ax[fenster].spines.values():
+                spine.set_edgecolor("white")
 
         # Die Datenbank
         self.datenbank = []
@@ -118,8 +128,6 @@ class simPlo(QMainWindow, Ui_MainWindow):
         self.delete_item.triggered.connect(self.delete_selected_data)
         self.treeWidget.addAction(self.delete_item)
 
-
-
         # Menubar
         menuleiste = self.menuBar()
         file = menuleiste.addMenu("&File")
@@ -157,9 +165,8 @@ class simPlo(QMainWindow, Ui_MainWindow):
         math_op = QAction(QIcon("icons/math_op.png"), "Math Operations", self)
         math_op.triggered.connect(self.math_operations)
 
-
         self.save1 = QAction(QIcon("icons/save1.png"), "Save Plot 1", self)
-        #self.delete_item.setShortcut("Ctrl+x")
+        # self.delete_item.setShortcut("Ctrl+x")
         self.save1.triggered.connect(self.save_plot_1)
 
         self.save2 = QAction(QIcon("icons/save2.png"), "Save Plot 2", self)
@@ -190,7 +197,7 @@ class simPlo(QMainWindow, Ui_MainWindow):
         file.addAction(self.save2)
 
         werkzeugleiste = self.addToolBar("Werkzeugleiste")
-        werkzeugleiste.setIconSize(QtCore.QSize(40, 40))
+        werkzeugleiste.setIconSize(QtCore.QSize(32, 32))
         werkzeugleiste.addAction(export_data)
         werkzeugleiste.addAction(import_data)
         werkzeugleiste.addAction(self.xwert)
@@ -227,7 +234,6 @@ class simPlo(QMainWindow, Ui_MainWindow):
         self.lineEdit_ylabel_w2.setText("Y-Axis")
         self.lineEdit_title_w1.setText("Chart 1")
         self.lineEdit_title_w2.setText("Chart 2")
-
 
     # load an save
     def save_simplo_format(self):
@@ -489,8 +495,8 @@ class simPlo(QMainWindow, Ui_MainWindow):
                                        units_list[i],  # 6: Einheit
                                        0,  # 7: Plot-Fenster: 0= keins, 1= F1, 2=F2
                                        "-",  # 8: linestyle
-                                       1.0,  # 9: linewidth
-                                       "o",  # 10: marker
+                                       3.0,  # 9: linewidth
+                                       "",  # 10: marker
                                        5.0,  # 11: markerwidth
                                        str(legend_list[i]) + "\n" + "-" * 50 + "\n", ])  # 12: comments
                 # []])             #
@@ -555,19 +561,18 @@ class simPlo(QMainWindow, Ui_MainWindow):
             max_id = -1
         return max_id + 1
 
-    def set_y_length_like_x_length(self,x,y):
+    def set_y_length_like_x_length(self, x, y):
         y1 = y.tolist()
         len_x = len(x)
         len_y = len(y)
-        differenz = len_x-len_y
-        if differenz>0:
-            y1.append(np.nan*differenz)
+        differenz = len_x - len_y
+        if differenz > 0:
+            y1.append(np.nan * differenz)
 
-        if differenz<0:
+        if differenz < 0:
             y1 = y1[:differenz]
 
         return np.array(y1)
-
 
     # math
     def math_operations(self):
@@ -608,10 +613,12 @@ class simPlo(QMainWindow, Ui_MainWindow):
             next_ID = self.next_usable_id()
             puffer = copy.deepcopy(self.datenbank[ril[0]])
             self.datenbank.append(puffer)
-            self.datenbank[next_ID][0] = "Math: " + item
-            self.datenbank[next_ID][1] = "x: " + x_str + "; y: " + y_str
-            self.datenbank[next_ID][2] = z
-            self.datenbank[next_ID][4] = next_ID
+            self.datenbank[-1][0] = "Math: " + item
+            self.datenbank[-1][1] = "x: " + x_str + "; y: " + y_str
+            self.datenbank[-1][2] = z
+            self.datenbank[-1][4] = next_ID
+            self.datenbank[-1][5] = "*"
+
             self.tree_creation_new()
 
         return
@@ -619,6 +626,7 @@ class simPlo(QMainWindow, Ui_MainWindow):
     def diff_proc(self):
         index_list = self.create_index_list_of_selected_items()
         real_index_list = self.find_real_db_id(index_list)
+        print(index_list,real_index_list)
         if len(index_list) != 2:
             QMessageBox.about(self, "Unable to differentiate data!", "Please select no more or less than two lines!")
             return
@@ -635,7 +643,7 @@ class simPlo(QMainWindow, Ui_MainWindow):
             if xy[0] == "x-axis" and xy[1] == "y-axis":
                 x = self.datenbank[real_index_list[0]][2]
                 y = self.datenbank[real_index_list[1]][2]
-                y = self.set_y_length_like_x_length(x,y)
+                y = self.set_y_length_like_x_length(x, y)
 
                 dydx = np.diff(y) / np.diff(x)
                 copy_index = real_index_list[1]
@@ -649,12 +657,14 @@ class simPlo(QMainWindow, Ui_MainWindow):
 
             if dydx != []:
                 next_ID = self.next_usable_id()
+                print(next_ID)
                 puffer = copy.deepcopy(self.datenbank[copy_index])
                 self.datenbank.append(puffer)
-                self.datenbank[next_ID][0] = item
-                self.datenbank[next_ID][1] = "dy:" + str(self.datenbank[next_ID][1])
-                self.datenbank[next_ID][2] = dydx
-                self.datenbank[next_ID][4] = next_ID
+                self.datenbank[-1][0] = item
+                self.datenbank[-1][1] = "dy:" + str(self.datenbank[-1][1])
+                self.datenbank[-1][2] = dydx
+                self.datenbank[-1][4] = next_ID
+                self.datenbank[-1][5] = "*"
                 self.tree_creation_new()
         return
 
@@ -707,9 +717,8 @@ class simPlo(QMainWindow, Ui_MainWindow):
                 j = j + 1
         self.treeWidget.expandAll()
         self.treeWidget.setAlternatingRowColors(True)
-        for x in range(1,6):
+        for x in range(1, 6):
             self.treeWidget.resizeColumnToContents(x)
-
 
     # data handling
     def delete_selected_data(self):
@@ -727,6 +736,7 @@ class simPlo(QMainWindow, Ui_MainWindow):
     def duplicate_proc(self):
 
         index_list = self.create_index_list_of_selected_items()
+        real_index_list = self.find_real_db_id(index_list)
         anz_index = len(index_list)
         if anz_index >= 1:  #
             item, ok = QInputDialog.getText(self, "Duplicate", str(anz_index) + " selected. Enter folder name:")
@@ -742,13 +752,13 @@ class simPlo(QMainWindow, Ui_MainWindow):
             next_ID = self.next_usable_id()
 
             i = 0
-            for ind in index_list:
+            for ind in real_index_list:
                 puffer = copy.deepcopy(self.datenbank[ind])
                 self.datenbank.append(puffer)
-                self.datenbank[next_ID + i][0] = item
-                self.datenbank[next_ID + i][1] = "Copy of " + self.datenbank[next_ID + i][1]
-                self.datenbank[next_ID + i][4] = next_ID + i
-                self.datenbank[next_ID + i][5] = "*"
+                self.datenbank[-1][0] = item
+                self.datenbank[-1][1] = "Copy of " + self.datenbank[-1][1]
+                self.datenbank[-1][4] = next_ID + i
+                self.datenbank[-1][5] = "*"
                 i = i + 1
             self.tree_creation_new()
 
@@ -1068,6 +1078,7 @@ class simPlo(QMainWindow, Ui_MainWindow):
         self.tree_creation_new()
 
     # plot
+
     def plot_interpolation(self, x, y):
         # not in use
         f = InterpolatedUnivariateSpline(x, y, k=2)
@@ -1091,21 +1102,21 @@ class simPlo(QMainWindow, Ui_MainWindow):
         else:
             return x, y
 
-    def start_plot(self):
-        self.plot(0,"")
-
-    def plot(self,mode,plot_filename):
+    def plot(self, mode, plot_filename):
 
         # limits
         axis_w = self.define_limits()
         x_label_list = [self.lineEdit_xlabel_w1.text(), self.lineEdit_xlabel_w2.text()]
         y_label_list = [self.lineEdit_ylabel_w1.text(), self.lineEdit_ylabel_w2.text()]
         window_title = [self.lineEdit_title_w1.text(), self.lineEdit_title_w2.text()]
+        limits = [None, None]
+        #im = image.imread('icons/simplo_green_black.png')
 
         # Plotten der Daten
-        self.ax[0].clear()  # Fenster 1
-        self.ax[1].clear()  # Fenster 2
-        self.ax[0].patch.set_visible(False)
+        self.ax[0].clear()
+        self.ax[1].clear()
+
+
         for eintrag in self.datenbank:
             if eintrag[7] > 0:  # ist ein Fenster ausgewählt?
                 fenster = eintrag[7] - 1  # ax[0] == 1 ; ax[1] == 2
@@ -1119,17 +1130,21 @@ class simPlo(QMainWindow, Ui_MainWindow):
                             (x, y) = self.check_xy_compa(x, y)
                             unit_x = eintrag[6]
                             unit_y = self.datenbank[i][6]
+                            # self.ax[fenster].grid("..", color=(0.5, 0.5, 0.95))
+
                             self.ax[fenster].plot(x, y, linestyle=self.datenbank[i][8],
                                                   label=self.datenbank[i][1],
                                                   linewidth=self.datenbank[i][9],
                                                   marker=self.datenbank[i][10],
-                                                  markersize=self.datenbank[i][11])
-                            self.ax[fenster].grid(color="grey")
+                                                  markersize=self.datenbank[i][11], zorder=4)
+
                             self.ax[fenster].set_xlabel(x_label_list[fenster] + " [" + unit_x + "]",
-                                                        fontsize=self.schrift)
+                                                        fontsize=self.schrift, color=(0.30, 0.30, 0.30))
                             self.ax[fenster].set_ylabel(y_label_list[fenster] + " [" + unit_y + "]",
-                                                        fontsize=self.schrift)
-                            self.ax[fenster].set_title(window_title[fenster])
+                                                        fontsize=self.schrift, color=(0.30, 0.30, 0.30))
+                            self.ax[fenster].set_title(window_title[fenster],
+                                                       fontsize=self.schrift, color=(0.30, 0.30, 0.30))
+
 
                 else:  # y-plots
                     y = eintrag[2]
@@ -1137,39 +1152,71 @@ class simPlo(QMainWindow, Ui_MainWindow):
                                           label=eintrag[1],
                                           linewidth=eintrag[9],
                                           marker=eintrag[10],
-                                          markersize=eintrag[11])
-                    self.ax[fenster].set_xlabel(x_label_list[fenster], fontsize=self.schrift)
-                    self.ax[fenster].set_ylabel(y_label_list[fenster], fontsize=self.schrift)
-                    self.ax[fenster].set_title(window_title[fenster])
-                self.ax[fenster].axis(axis_w[fenster])
-                self.ax[fenster].grid(color="black")
+                                          markersize=eintrag[11], zorder=4)
+                    self.ax[fenster].set_xlabel(x_label_list[fenster],
+                                                fontsize=self.schrift, color=(0.30, 0.30, 0.30))
+                    self.ax[fenster].set_ylabel(y_label_list[fenster],
+                                                fontsize=self.schrift, color=(0.30, 0.30, 0.30))
+                    self.ax[fenster].set_title(window_title[fenster],
+                                               fontsize=self.schrift, color=(0.30, 0.30, 0.30))
+
+                self.ax[fenster].minorticks_on()
+                self.ax[fenster].grid(color="#ebebeb")
+                self.ax[fenster].tick_params(color=(0.30, 0.30, 0.30), labelcolor=(0.30, 0.30, 0.30))
+
+
+                # rescale limits 5%
+                limits[fenster] = self.ax[fenster].axis()
+                f = 0.05
+                limits[fenster] = [(a + a * f) for a in limits[fenster]]
                 self.logscale_definition(axis_w)
-        #self.ax[0].savefig('test.eps', format='eps', dpi=900)
-        self.ax[0].legend(loc='best', fancybox=True, shadow=False, fontsize=self.schrift)
-        self.ax[1].legend(loc='best', fancybox=True, shadow=False, fontsize=self.schrift)
-        # self.ax[0].set_xlim(0,5)
-        # self.ax[1].set_ylim(0,100)
+
+
+        if self.lineEdit_axis_limits_w1.text() == "" and limits[0] is not None:
+            self.ax[0].axis(limits[0])
+        else:
+            self.ax[0].axis(axis_w[0])
+
+        if self.lineEdit_axis_limits_w2.text() == "" and limits[1] is not None:
+            self.ax[1].axis(limits[1])
+        else:
+            self.ax[1].axis(axis_w[1])
+
+        try:
+            legend0 = self.ax[0].legend(loc='best', fancybox=True, shadow=True, fontsize=self.schrift)
+            legend0.get_frame().set_facecolor("#E0E0E0")
+        except:
+            pass
+        try:
+            legend1 = self.ax[1].legend(loc='best', fancybox=True, shadow=True, fontsize=self.schrift)
+            legend1.get_frame().set_facecolor("#E0E0E0")
+        except:
+            pass
 
         self.canvas.draw()
         self.canvas2.draw()
 
         if mode == 1:
-            self.figure.savefig(str(plot_filename))
+            self.figure1.savefig(str(plot_filename))
         if mode == 2:
             self.figure2.savefig(str(plot_filename))
 
-    def save_plot_1(self): self.save_plot(1)
+    # save Plots
+    def start_plot(self):
+        self.plot(0, "")
 
-    def save_plot_2(self): self.save_plot(2)
+    def save_plot_1(self):
+        self.save_plot(1)
 
-    def save_plot(self,mode):
-        f1 = QFileDialog.getSaveFileName(self, "Save Plot of Window "+str(mode), "",
+    def save_plot_2(self):
+        self.save_plot(2)
+
+    def save_plot(self, mode):
+        f1 = QFileDialog.getSaveFileName(self, "Save Plot of Window " + str(mode), "",
                                          "PNG File (*.png);;SVG File (*.svg);;All Files (*)")
         if f1[0] == "": return
-        self.plot(mode,f1[0])
+        self.plot(mode, f1[0])
         return
-
-
 
     # exit
     def sigint_handler(self, *args):
@@ -1179,9 +1226,6 @@ class simPlo(QMainWindow, Ui_MainWindow):
                                 QMessageBox.Yes | QMessageBox.No,
                                 QMessageBox.No) == QMessageBox.Yes:
             QApplication.quit()
-
-
-
 
 
 def main():
