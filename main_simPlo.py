@@ -1080,7 +1080,7 @@ class simPlo(QMainWindow, Ui_MainWindow):
     # plot
 
     def plot_interpolation(self, x, y):
-        # not in use
+        # not in use ll
         f = InterpolatedUnivariateSpline(x, y, k=2)
         yi = f(x)
         return yi
