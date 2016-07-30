@@ -9,6 +9,7 @@ from PyQt5.QtGui import QIcon, QGuiApplication, QStandardItem
 from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
+from scipy import integrate
 
 import matplotlib.cbook as cbook
 
@@ -159,8 +160,11 @@ class simPlo(QMainWindow, Ui_MainWindow):
         copy_d.triggered.connect(self.duplicate_proc)
         # copy_d.setStatusTip("Save simPlo Database")
 
-        integral_num = QAction(QIcon("icons/diff.png"), "Numerical Differentiation", self)
-        integral_num.triggered.connect(self.diff_proc)
+        diff_num = QAction(QIcon("icons/diff.png"), "Numerical Differentiation", self)
+        diff_num.triggered.connect(self.diff_proc)
+
+        integ_num = QAction(QIcon("icons/int.png"), "Numerical Integration", self)
+        integ_num.triggered.connect(self.integ_proc)
 
         math_op = QAction(QIcon("icons/math_op.png"), "Math Operations", self)
         math_op.triggered.connect(self.math_operations)
@@ -191,7 +195,8 @@ class simPlo(QMainWindow, Ui_MainWindow):
 
         file = menuleiste.addMenu("&Processing")
         file.addAction(copy_d)
-        file.addAction(integral_num)
+        file.addAction(diff_num)
+        file.addAction(integ_num)
         file.addAction(math_op)
         file.addAction(self.save1)
         file.addAction(self.save2)
@@ -213,7 +218,8 @@ class simPlo(QMainWindow, Ui_MainWindow):
         werkzeugleiste.addAction(self.save2)
         werkzeugleiste.addSeparator()
         werkzeugleiste.addAction(copy_d)
-        werkzeugleiste.addAction(integral_num)
+        werkzeugleiste.addAction(diff_num)
+        werkzeugleiste.addAction(integ_num)
         werkzeugleiste.addAction(math_op)
 
         # TabWidget
@@ -663,6 +669,55 @@ class simPlo(QMainWindow, Ui_MainWindow):
                 self.datenbank[-1][0] = item
                 self.datenbank[-1][1] = "dy:" + str(self.datenbank[-1][1])
                 self.datenbank[-1][2] = dydx
+                self.datenbank[-1][4] = next_ID
+                self.datenbank[-1][5] = "*"
+                self.tree_creation_new()
+        return
+
+    def integ_proc(self):
+        print("integ_proc")
+        index_list = self.create_index_list_of_selected_items()
+        real_index_list = self.find_real_db_id(index_list)
+        print(index_list, real_index_list)
+        if len(index_list) != 2:
+            QMessageBox.about(self, "Unable to integrate data!", "Please select no more or less than two lines!")
+            return
+
+        item, ok = QInputDialog.getText(self, "Numerical Integration", "Enter folder name:")
+        if item == "" and ok == True:
+            QMessageBox.about(self, "Error!", "Type valid folder name!")
+            return
+        if ok:
+            copy_index = 0
+            xy = [self.datenbank[real_index_list[0]][3], self.datenbank[real_index_list[1]][3]]
+            int_y = []
+
+            if xy[0] == "x-axis" and xy[1] == "y-axis":
+                x = self.datenbank[real_index_list[0]][2]
+                y = self.datenbank[real_index_list[1]][2]
+                y = self.set_y_length_like_x_length(x, y)
+
+                int_y = integrate.cumtrapz(y, x, initial=0)
+
+                copy_index = real_index_list[1]
+
+            if xy[1] == "x-axis" and xy[0] == "y-axis":
+                x = self.datenbank[real_index_list[1]][2]
+                y = self.datenbank[real_index_list[0]][2]
+                y = self.set_y_length_like_x_length(x, y)
+
+                int_y = integrate.cumtrapz(y, x, initial=0)
+
+                copy_index = real_index_list[0]
+
+            if int_y != []:
+                next_ID = self.next_usable_id()
+                print(next_ID)
+                puffer = copy.deepcopy(self.datenbank[copy_index])
+                self.datenbank.append(puffer)
+                self.datenbank[-1][0] = item
+                self.datenbank[-1][1] = "dy:" + str(self.datenbank[-1][1])
+                self.datenbank[-1][2] = int_y
                 self.datenbank[-1][4] = next_ID
                 self.datenbank[-1][5] = "*"
                 self.tree_creation_new()
