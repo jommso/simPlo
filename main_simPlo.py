@@ -11,17 +11,17 @@ import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy import integrate
 
-import matplotlib.cbook as cbook
+# import matplotlib.cbook as cbook
+# import matplotlib
+# import matplotlib.image as image
+# matplotlib.use("Qt5Agg")
+# from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+# import matplotlib.pyplot as plt
+# from  matplotlib.pyplot import figure, show, cm
+import pyqtgraph as pg
 
-import matplotlib
-import matplotlib.image as image
-matplotlib.use("Qt5Agg")
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-import matplotlib.pyplot as plt
-from  matplotlib.pyplot import figure, show, cm
 
-
-class simPlo(QMainWindow, Ui_MainWindow):
+class simPlo(QMainWindow, Ui_MainWindow, QMessageBox, QInputDialog, QFileDialog):
     def __init__(self):
         super(simPlo, self).__init__()
         self.setupUi(self)
@@ -33,27 +33,54 @@ class simPlo(QMainWindow, Ui_MainWindow):
 
         self.schrift = 14
         self.comment = ""
+        self.bg_color = (239, 239, 239)
+        self.fg_color = (100, 100, 100)
 
+        pg.setConfigOption('background', self.bg_color)
+        pg.setConfigOption('foreground', self.fg_color)
+        self.plot_anz = 2
         self.ax = []
-        self.figure1 = plt.figure(facecolor='white')  # , edgecolor='black')
-        self.canvas = FigureCanvas(self.figure1)
-        self.verticalLayout_mpl1.addWidget(self.canvas)
-        self.ax.append(self.figure1.add_subplot(111, axisbg="#dbdbdb"))  # , frameon=True))  # axisbg='w',
-        plt.gcf().subplots_adjust(bottom=0.18)
+        self.li = []  # legenditem
+        for w in range(self.plot_anz):
+            self.ax.append(pg.PlotWidget())
+            self.verticalLayout_mpl1.addWidget(self.ax[-1])
+            self.ax[-1].showGrid(x=True, y=True)
+            self.li.append(pg.LegendItem(offset=(70, 30)))  # (100,60), offset=(70,30)))  # args are (size, offset))
+            self.li[-1].setParentItem(self.ax[-1].graphicsItem())  # Note we do NOT call plt.addItem in this case
+            # self.ax[-1].addLegend()
+        pg.setConfigOptions(antialias=True)
+        """
+        pg.setConfigOptions(antialias=True)
+        self.p6 = self.win.addPlot(title="My Plot")
+        #self.curve = self.p6.plot(pen="r")
+        self.data = np.random.normal(size=(30, 10))
 
-        self.figure2 = plt.figure(facecolor='white')  # , edgecolor='black')
-        self.canvas2 = FigureCanvas(self.figure2)
-        self.verticalLayout_mpl1.addWidget(self.canvas2)
-        self.ax.append(self.figure2.add_subplot(111, axisbg="#dbdbdb"))  # , axisbg='w', frameon=True))
-        plt.gcf().subplots_adjust(bottom=0.18)
-        plt.style.use("fivethirtyeight")
+        self.p6.enableAutoRange('xy', True)
+        self.p6.plot(np.random.normal(size=100), title="Simplest possible plotting example")
+        """
 
-
-        for fenster in range(2):
-            # self.ax[fenster].grid(color=(0.30,0.30,0.30))
-            self.ax[fenster].tick_params(color=(0.30, 0.30, 0.30), labelcolor=(0.30, 0.30, 0.30))
-            for spine in self.ax[fenster].spines.values():
-                spine.set_edgecolor("white")
+        # self.ax = []
+        # self.figure1 = plt.figure(facecolor='white')  # , edgecolor='black')
+        # self.canvas = FigureCanvas(self.figure1)
+        # self.verticalLayout_mpl1.addWidget(self.canvas)
+        # self.ax.append(self.figure1.add_subplot(111, axisbg="#dbdbdb"))  # , frameon=True))  # axisbg='w',
+        # plt.gcf().subplots_adjust(bottom=0.18)
+        #
+        # self.figure2 = plt.figure(facecolor='white')  # , edgecolor='black')
+        # self.canvas2 = FigureCanvas(self.figure2)
+        # self.verticalLayout_mpl1.addWidget(self.canvas2)
+        # self.ax.append(self.figure2.add_subplot(111, axisbg="#dbdbdb"))  # , axisbg='w', frameon=True))
+        # plt.gcf().subplots_adjust(bottom=0.18)
+        # plt.style.use("fivethirtyeight")
+        #
+        #
+        #
+        #
+        # for fenster in range(2):
+        #     # self.ax[fenster].grid(color=(0.30,0.30,0.30))
+        #     self.ax[fenster].tick_params(color=(0.30, 0.30, 0.30), labelcolor=(0.30, 0.30, 0.30))
+        #     for spine in self.ax[fenster].spines.values():
+        #         spine.set_edgecolor("white")
 
         # Die Datenbank
         self.datenbank = []
@@ -499,7 +526,7 @@ class simPlo(QMainWindow, Ui_MainWindow):
                                        next_ID + i,  # 4: ID
                                        "*",  # 5: Connection
                                        units_list[i],  # 6: Einheit
-                                       0,  # 7: Plot-Fenster: 0= keins, 1= F1, 2=F2
+                                       "0",  # 7: Plot-Fenster: 0= keins, 1= F1, 2=F2
                                        "-",  # 8: linestyle
                                        3.0,  # 9: linewidth
                                        "",  # 10: marker
@@ -606,7 +633,7 @@ class simPlo(QMainWindow, Ui_MainWindow):
                                         "x = " + x_str + "\n" +
                                         "y = " + y_str + "\n\n" +
                                         "Examples: 'x*y+100','x**y")
-        if item == "" and ok == True:
+        if item == "" and ok is True:
             return
         if ok:
 
@@ -632,13 +659,13 @@ class simPlo(QMainWindow, Ui_MainWindow):
     def diff_proc(self):
         index_list = self.create_index_list_of_selected_items()
         real_index_list = self.find_real_db_id(index_list)
-        print(index_list,real_index_list)
+        print(index_list, real_index_list)
         if len(index_list) != 2:
             QMessageBox.about(self, "Unable to differentiate data!", "Please select no more or less than two lines!")
             return
 
         item, ok = QInputDialog.getText(self, "Numerical &Differentiation", "Enter folder name:")
-        if item == "" and ok == True:
+        if item == "" and ok is True:
             QMessageBox.about(self, "Error!", "Type valid folder name!")
             return
         if ok:
@@ -940,13 +967,22 @@ class simPlo(QMainWindow, Ui_MainWindow):
     def plot_window_choise(self, choise):
 
         index_list = self.create_index_list_of_selected_items()
-        anz_index = len(index_list)
-        if anz_index >= 1:
-            for i in index_list:
-                for a in range(len(self.datenbank)):
-                    if self.datenbank[a][4] == i:
-                        self.datenbank[a][7] = choise
-                        break
+        if len(index_list) >= 1:
+            ril = self.find_real_db_id(index_list)
+            for e in ril:
+                if choise == 0: self.datenbank[e][7] = "0"
+                exists = False
+                if self.datenbank[e][7] == "0":
+                    self.datenbank[e][7] = str(choise)
+                else:
+                    f_window = [int(a) for a in self.datenbank[e][7].split(";")]
+                    for i in f_window:  # check if window number already exist
+                        if i == choise:
+                            print("break")
+                            exists = True
+                            break
+                    if not exists:
+                        self.datenbank[e][7] = self.datenbank[e][7] + ";" + str(choise)
             self.tree_creation_new()
 
     # tab filling, limits, comments, etc.
@@ -1157,7 +1193,125 @@ class simPlo(QMainWindow, Ui_MainWindow):
         else:
             return x, y
 
+    def create_fivethirtyeight_style(self):
+
+        palette = []
+        try:
+            file = open("palette.dat", "r")
+            for z in file:
+                zeile = z.split(",")
+                palette.append((int(zeile[0]), int(zeile[1]), int(zeile[2])))
+            file.close()
+        except:
+            QMessageBox.about(self, "Error!",
+                              "The file 'palette.dat' could not be read. Check the existence\n" +
+                              "of the file and the entries with a text editor.\n" +
+                              "Example for one line: 255,255,255")
+            palette = [
+                (198, 40, 40),  # 0: rot
+                (19, 141, 208),  # 1: blau
+                (129, 175, 91),  # 2: grün
+                (243, 196, 79),  # 3: gelb
+                (141, 68, 173),
+                (230, 127, 34),
+                (40, 53, 147),
+                (48, 114, 43), ]
+
+        my_pen = []
+        style_list = [
+            None,
+            QtCore.Qt.DashLine,
+            QtCore.Qt.DotLine,
+            QtCore.Qt.DashDotLine,
+            QtCore.Qt.DashDotDotLine,
+        ]
+        for s in style_list:
+            for i in range(8):
+                my_pen.append(pg.mkPen(palette[i], width=3, style=s))
+
+        return my_pen
+
     def plot(self, mode, plot_filename):
+
+        five38_pen = self.create_fivethirtyeight_style()
+
+        # my_pen= pg.mkPen('r', width=3, style=QtCore.Qt.DashLine)
+
+        plot_liste = [[]]
+        for i in range(self.plot_anz):
+            self.ax[i].clear()
+            while self.li[i].layout.count() > 0:
+                self.li[i].layout.removeAt(0)
+            print(self.li[i].items)
+            self.li[i].items = []
+            # my_plot.plotItem.legend.items = []
+            # self.ax[i].showGrid(x=True, y=True)
+            # self.ax[i].addLegend()
+            plot_liste.append([])
+
+        print(plot_liste)
+
+        for eintrag in self.datenbank:
+            for f in range(self.plot_anz + 1):
+                f_window = [int(a) for a in eintrag[7].split(";")]
+                for elem in f_window:
+                    if elem == f:
+                        plot_liste[f].append(eintrag[4])
+
+        print(plot_liste)
+
+        for fenster in range(1, self.plot_anz + 1):
+
+            labelStyle = {'color': "#646464", 'font-size': str(self.schrift) + 'pt'}
+            self.ax[fenster - 1].setLabel('bottom', "Label Fenster: " + str(fenster), units='V', **labelStyle)
+            self.ax[fenster - 1].setLabel('left', "Label Fenster: " + str(fenster), units='V', **labelStyle)
+            real_id = self.find_real_db_id(plot_liste[fenster])
+            col_index = 0
+            for id in real_id:
+                if self.datenbank[id][5] != "*":  # Durchlauf für xy-plots
+                    if self.datenbank[id][3] == "x-axis":  # nur x-Achse berücksichtigen
+                        die_ys = [int(a) for a in self.datenbank[id][5].split(";")]
+                        real_ys_ID = self.find_real_db_id(die_ys)
+                        for i in real_ys_ID:
+                            x = self.datenbank[id][2]
+                            y = self.datenbank[i][2]
+                            (x, y) = self.check_xy_compa(x, y)
+                            c1 = self.ax[fenster - 1].plot(x, y,
+                                                           pen=five38_pen[col_index])  # ,symbol='o')
+                            self.li[fenster - 1].addItem(c1, "----"+str(self.datenbank[i][1]))
+                            col_index = col_index + 1
+                if self.datenbank[id][5] == "*":  # Durchlauf für y-plots
+                    y = self.datenbank[id][2]
+                    c1 = self.ax[fenster - 1].plot(y, pen=five38_pen[col_index])
+                    self.li[fenster - 1].addItem(c1, ".  " + str(self.datenbank[id][1]))
+                    col_index = col_index + 1
+
+            print(plot_liste[fenster])
+            print(real_id)
+
+        """
+        for eintrag in self.datenbank:
+            if eintrag[7] > 0:  # ist ein Fenster ausgewählt?
+                fenster = eintrag[7] - 1  # ax[0] == 1 ; ax[1] == 2
+                if eintrag[5] != "*":  # Durchlauf fü xy-plots
+                    if eintrag[3] == "x-axis":  # Durchlauf erfolgt nur mit der x-Achse
+                        die_ys = [int(a) for a in eintrag[5].split(";")]
+                        real_ys_ID = self.find_real_db_id(die_ys)
+                        for i in real_ys_ID:
+                            x = eintrag[2]
+                            y = self.datenbank[i][2]
+                            (x, y) = self.check_xy_compa(x, y)
+                            self.ax[fenster].plot(x, y, pen=five38_pen[i-1])
+
+                            self.ax[fenster].plot(x, y,
+                                                  pen=pg.intColor(i,6,maxValue=128),
+                                                  symbolBrush=pg.intColor(i,6,maxValue=128),
+                                                  symbolPen='w',
+                                                  size=2)
+
+        """
+
+    def plot_old(self, mode, plot_filename):
 
         # limits
         axis_w = self.define_limits()
@@ -1165,12 +1319,11 @@ class simPlo(QMainWindow, Ui_MainWindow):
         y_label_list = [self.lineEdit_ylabel_w1.text(), self.lineEdit_ylabel_w2.text()]
         window_title = [self.lineEdit_title_w1.text(), self.lineEdit_title_w2.text()]
         limits = [None, None]
-        #im = image.imread('icons/simplo_green_black.png')
+        # im = image.imread('icons/simplo_green_black.png')
 
         # Plotten der Daten
         self.ax[0].clear()
         self.ax[1].clear()
-
 
         for eintrag in self.datenbank:
             if eintrag[7] > 0:  # ist ein Fenster ausgewählt?
@@ -1219,13 +1372,11 @@ class simPlo(QMainWindow, Ui_MainWindow):
                 self.ax[fenster].grid(color="#ebebeb")
                 self.ax[fenster].tick_params(color=(0.30, 0.30, 0.30), labelcolor=(0.30, 0.30, 0.30))
 
-
                 # rescale limits 5%
                 limits[fenster] = self.ax[fenster].axis()
                 f = 0.05
                 limits[fenster] = [(a + a * f) for a in limits[fenster]]
                 self.logscale_definition(axis_w)
-
 
         if self.lineEdit_axis_limits_w1.text() == "" and limits[0] is not None:
             self.ax[0].axis(limits[0])
